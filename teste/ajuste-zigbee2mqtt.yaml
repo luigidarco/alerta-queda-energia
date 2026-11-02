@@ -1,0 +1,8 @@
+advanced:
+  last_seen: epoch
+
+devices:
+  '0x00124b0000000000':
+    filtered_cache:
+      - '^voltage$'
+      - '^event$'

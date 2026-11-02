@@ -1,0 +1,56 @@
+# Ambiente isolado: não utiliza broker, disjuntor ou destinatários reais.
+services:
+  broker:
+    image: eclipse-mosquitto:2.0.22
+    volumes:
+      - ./teste/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: [CMD, mosquitto_pub, -h, localhost, -t, teste/saude, -m, ok]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+  smtp:
+    image: axllent/mailpit:v1.33.0
+    healthcheck:
+      test: [CMD, /mailpit, readyz]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+  push:
+    image: python:3.13-alpine
+    command: [python, /testes/push_simulado.py]
+    volumes:
+      - ./teste:/testes:ro
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8080/mensagens')"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+  monitor:
+    build: .
+    image: monitor-energia:teste
+    environment:
+      MQTT_URL: tcp://broker:1883
+      MQTT_TOPICO: teste/disjuntor
+      MQTT_PONTE: teste/bridge/state
+      SILENCIO_SEGUNDOS: "6"
+      RECUPERACAO_SEGUNDOS: "1"
+      DIRETORIO_DADOS: /dados
+      SMTP_HOST: smtp
+      SMTP_PORTA: "1025"
+      SMTP_STARTTLS: "false"
+      EMAIL_ORIGEM: monitor@example.test
+      EMAIL_DESTINO: teste@example.test
+      NTFY_URL: http://push:8080
+      NTFY_TOPICO: teste-local
+    volumes:
+      - estado-teste:/dados
+    read_only: true
+    tmpfs: [/tmp]
+    depends_on:
+      broker: {condition: service_healthy}
+      smtp: {condition: service_healthy}
+      push: {condition: service_healthy}
+
+volumes:
+  estado-teste:

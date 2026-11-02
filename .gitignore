@@ -1,0 +1,12 @@
+.env
+.env.*
+*.env
+!.env.example
+/target/
+/dados/
+/teste/resultado/
+.idea/
+*.iml
+.DS_Store
+
+/backup*
